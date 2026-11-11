@@ -10,10 +10,12 @@ A full golf swing tempo trainer, and the companion to TicTocPutter. Every club g
   - **Weight shift:** a trail/lead pressure bar under the feet.
   - **Leg action:** lead knee moves in, lead leg posts at impact, trail heel lifts.
   - **Clubhead path** with a speed trail.
-- Driver, 7-iron and wedge setups. Full, ¾ and ½ swing lengths at the same tempo.
+- Driver, 7-iron and wedge setups. Full, 10:30, 9:00 and 7:30 swing lengths at the same tempo.
+- Optional guide lines: the spine extended to the ground and a vertical line through the ball.
+- **Wedge ladder:** enter your full carry with PW, GW, SW and LW, and the grid estimates the carry at 7:30, 9:00 and 10:30. Tap a cell to see that swing. "Find a shot" gives the closest wedge and length for a distance, in metres or yards. A partial-swing feel adjustment tunes the estimates to you.
 - Slow motion at ½× and ¼×, a scrubber, and jump buttons for the ten swing positions (P1–P10).
 
-The positions model a typical good swing. They are not a measurement of yours.
+The positions model a typical good swing. They are not a measurement of yours. Partial carries assume clubhead speed scales with how far the club travels from the top to impact in the same downswing time.
 
 It is a single `index.html` with no build step. Open it in a browser, or turn on GitHub Pages (Settings → Pages → Deploy from branch `main`, folder `/`) to use it on your phone.
 

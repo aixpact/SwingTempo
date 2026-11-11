@@ -127,6 +127,37 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
 .presets button { border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 999px; padding: 3px 10px; font-size: 12.5px; font-family: var(--mono); }
 .presets button[aria-pressed="true"] { border-color: var(--beat); color: var(--ink); background: var(--beat-soft); }
 
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.check input { accent-color: var(--green); width: 16px; height: 16px; margin: 0; }
+
+.ladder { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; display: grid; gap: 16px; }
+.ladder-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
+.ladder-head p { margin: 0; color: var(--muted); font-size: 13.5px; max-width: 70ch; }
+.ladder-body { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 860px) { .ladder-body { grid-template-columns: minmax(0, 1fr); } }
+.lad { width: 100%; border-collapse: separate; border-spacing: 4px; table-layout: fixed; font-variant-numeric: tabular-nums; margin: -4px; width: calc(100% + 8px); }
+.lad th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); font-weight: 600; text-align: center; padding: 2px 0 4px; }
+.lad th small { display: block; text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 11px; }
+.lad tbody th { text-align: left; font-family: var(--mono); font-size: 14px; color: var(--ink); letter-spacing: 0; text-transform: none; font-weight: 500; width: 44px; }
+.lad thead th:first-child { width: 44px; }
+.cell { width: 100%; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px; padding: 9px 4px 7px; display: grid; gap: 5px; justify-items: center; }
+.cell .n { font-family: var(--mono); font-size: 17px; font-weight: 500; line-height: 1; }
+.cell .n small { font-size: 11px; color: var(--muted); margin-left: 1px; }
+.cell .b { width: 80%; height: 4px; border-radius: 2px; background: var(--line); position: relative; overflow: hidden; }
+.cell .b span { position: absolute; inset: 0 auto 0 0; background: var(--green); }
+.cell:hover { border-color: var(--muted); }
+.cell.match { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); }
+.cell.cur { background: var(--beat-soft); border-color: var(--beat); }
+.cell.cur .b span { background: var(--beat); }
+.ladder-tools { display: grid; gap: 16px; }
+.carries { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.carries label { display: grid; gap: 4px; font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.ladder input[type="number"] { width: 100%; font: 500 16px var(--mono); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; font-variant-numeric: tabular-nums; }
+.find-row { display: flex; gap: 8px; align-items: center; }
+.find-row input { max-width: 120px; }
+.find-out { font-size: 13.5px; color: var(--ink); margin: 0; min-height: 1.5em; }
+.find-out b { font-family: var(--mono); font-weight: 500; color: var(--green); }
+
 .notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; color: var(--muted); font-size: 13.5px; }
 .notes h3 { font-size: 13px; color: var(--ink); margin: 0 0 4px; font-weight: 600; }
 .notes p { margin: 0; }
@@ -202,10 +233,11 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
         <span class="label">Swing length</span>
         <div class="seg full" role="group" aria-label="Swing length">
           <button data-len="1" aria-pressed="true">Full</button>
-          <button data-len="0.8" aria-pressed="false">¾</button>
-          <button data-len="0.6" aria-pressed="false">½</button>
+          <button data-len="0.85" aria-pressed="false">10:30</button>
+          <button data-len="0.66" aria-pressed="false">9:00</button>
+          <button data-len="0.4" aria-pressed="false">7:30</button>
         </div>
-        <p class="hint">Shorter swing, same tempo. Hinge, turn and weight shift all scale down with the length.</p>
+        <p class="hint">Where the lead arm points at the top, like a clock hand. Shorter swing, same tempo: hinge, turn and weight shift all scale down with it.</p>
       </div>
 
       <div class="field">
@@ -217,8 +249,45 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
         </div>
         <p class="hint" id="spHint">Real time. The beats are your actual tempo.</p>
       </div>
+
+      <div class="field">
+        <span class="label">Guide lines</span>
+        <label class="check"><input type="checkbox" id="guides"> Spine line to the ground and a line straight up from the ball</label>
+        <p class="hint">Watch the spine tilt away from the target as the hips slide forward, and stay behind the ball line at impact.</p>
+      </div>
     </aside>
   </div>
+
+  <section class="ladder" aria-label="Wedge ladder">
+    <div class="ladder-head">
+      <h2>Wedge ladder</h2>
+      <p id="ladderSub">Same tempo, four swing lengths. Enter your full carry with each wedge and the grid fills in the partial swings. Tap a cell to see and practise that swing.</p>
+    </div>
+    <div class="ladder-body">
+      <div style="overflow-x:auto"><table class="lad" id="lad"></table></div>
+      <div class="ladder-tools">
+        <div class="field">
+          <div class="field-head">
+            <span class="label">Your full carries</span>
+            <div class="seg" role="group" aria-label="Units">
+              <button id="uM" aria-pressed="true">m</button><button id="uY" aria-pressed="false">yd</button>
+            </div>
+          </div>
+          <div class="carries" id="carries"></div>
+        </div>
+        <div class="field">
+          <label class="label" for="find">Find a shot</label>
+          <div class="find-row"><input type="number" id="find" inputmode="numeric" min="5" max="200" placeholder="e.g. 60"><span class="hint" id="findUnit">metres carry</span></div>
+          <p class="find-out" id="findOut"></p>
+        </div>
+        <div class="field">
+          <div class="field-head"><label class="label" for="feel">Partial swing feel</label><output id="feelOut">±0%</output></div>
+          <input type="range" id="feel" min="-15" max="15" step="1" value="0">
+          <p class="hint">If your partial swings fly further than the grid says, add a few percent. Full swings stay as you entered them.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <section class="notes">
     <div><h3>Why one tempo</h3><p>Good players take close to the same time from takeaway to impact with a driver as with a wedge, and their backswing lasts about three times their downswing. A fixed rhythm takes timing out of the equation, so the swing gets more repeatable.</p></div>
@@ -232,7 +301,9 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
   const $ = id => document.getElementById(id);
   const D2R = Math.PI / 180;
 
-  const S = { total: 1.07, ratio: 3, club: 'iron', len: 1, sp: 1, sound: true };
+  const YD = 0.9144;
+  const S = { total: 1.07, ratio: 3, club: 'iron', len: 1, sp: 1, sound: true, guides: false,
+              wedge: 'SW', units: 'm', carries: { PW: 105, GW: 92, SW: 80, LW: 65 }, feel: 0, find: null };
   try { Object.assign(S, JSON.parse(localStorage.getItem('swing-tempo') || '{}')); } catch (e) {}
   const save = () => { try { localStorage.setItem('swing-tempo', JSON.stringify(S)); } catch (e) {} };
 
@@ -285,6 +356,29 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
     wedge:  { name: 'Wedge',  len: 0.72, stance: 0.17, tilt: 2 },
   };
   const SPINE = 0.42, SH_HALF = 0.18, ARM = 0.5, TRAIL_SEG = 0.27, HIP_HALF = 0.1;
+
+  const LENS = [
+    { v: 0.4, name: '7:30' }, { v: 0.66, name: '9:00' }, { v: 0.85, name: '10:30' }, { v: 1, name: 'Full' },
+  ];
+  const WEDGES = ['PW', 'GW', 'SW', 'LW'];
+  const lenName = v => (LENS.find(l => l.v === v) || LENS[3]).name;
+
+  // Carry for a partial swing. The downswing time is fixed by the tempo, so clubhead speed scales with
+  // how far the club travels from the top to impact: the swept shaft angle, read straight from the
+  // swing model at the top and impact keys. Wedge carry grows a little faster than speed (exponent 1.15).
+  function clubAngle(key, len) {
+    const at = p => TABLE[p][0] + (TABLE[p][key] - TABLE[p][0]) * Math.pow(len, LEN_EXP[p]);
+    return at('a') + at('h');
+  }
+  const sweep = len => clubAngle(4, len) - clubAngle(7, len);
+  function carry(w, len) {
+    const full = S.carries[w];
+    if (len === 1) return full;
+    return full * Math.pow(sweep(len) / sweep(1), 1.15) * (1 + S.feel / 100);
+  }
+  const toU = m => S.units === 'm' ? m : m / YD;          // metres -> display units
+  const fromU = v => S.units === 'm' ? v : v * YD;
+  const uName = () => S.units === 'm' ? 'm' : 'yd';
 
   function keyTimes(Tb, Td) {
     return [0, 0.28 * Tb, 0.58 * Tb, 0.86 * Tb, Tb, Tb + 0.42 * Td, Tb + 0.7 * Td, Tb + Td, Tb + 1.22 * Td, Tb + 1.6 * Td, Tb + 2.6 * Td];
@@ -384,6 +478,9 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
     $('ratioHint').textContent = S.ratio === 3
       ? 'The backswing takes three times as long as the downswing.'
       : 'The backswing takes twice as long as the downswing. Good for chips and pitches.';
+    $('guides').checked = !!S.guides;
+    $('uM').setAttribute('aria-pressed', S.units === 'm');
+    $('uY').setAttribute('aria-pressed', S.units === 'yd');
     $('spHint').textContent = S.sp === 1 ? 'Real time. The beats are your actual tempo.'
       : `Slow motion: everything, beats included, runs at ${S.sp === 0.5 ? 'half' : 'a quarter of'} real speed.`;
   }
@@ -397,7 +494,40 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
       `<button data-t="${v}" aria-pressed="${Math.abs(v - S.total) < 0.005}">${v.toFixed(2)} s</button>`).join('');
     $('pos').innerHTML = KEYS.map((k, i) => k.hidden ? '' :
       `<button data-k="${i}" aria-pressed="${frozenKey === i}"><span>P${KEYS.slice(0, i + 1).filter(x => !x.hidden).length}</span>${k.name}</button>`).join('');
+    renderLadder();
     save();
+  }
+
+  function findShots() {
+    if (!(S.find > 0)) return [];
+    const want = fromU(S.find), all = [];
+    for (const w of WEDGES) for (const l of LENS) all.push({ w, l, c: carry(w, l.v), d: carry(w, l.v) - want });
+    all.sort((a, b) => Math.abs(a.d) - Math.abs(b.d));
+    return all.slice(0, 2).filter((x, i) => i === 0 || Math.abs(x.d) < Math.max(3, Math.abs(all[0].d) + 3));
+  }
+
+  function renderLadder() {
+    const fmt = m => Math.round(toU(m));
+    const max = Math.max(...WEDGES.map(w => S.carries[w]));
+    const best = findShots(), isBest = (w, l) => best.some(b => b.w === w && b.l.v === l);
+    $('lad').innerHTML = `<thead><tr><th></th>${LENS.map(l => `<th>${l.name}<small>${l.v === 1 ? 'full swing' : 'lead arm'}</small></th>`).join('')}</tr></thead><tbody>` +
+      WEDGES.map(w => `<tr><th scope="row">${w}</th>${LENS.map(l => {
+        const c = carry(w, l.v), cur = S.club === 'wedge' && S.wedge === w && S.len === l.v;
+        return `<td><button class="cell${cur ? ' cur' : ''}${isBest(w, l.v) ? ' match' : ''}" data-w="${w}" data-l="${l.v}" aria-pressed="${cur}" aria-label="${w} ${l.name}: ${fmt(c)} ${uName()}">
+          <span class="n">${fmt(c)}<small>${uName()}</small></span><span class="b"><span style="width:${(c / max * 100).toFixed(1)}%"></span></span></button></td>`;
+      }).join('')}</tr>`).join('') + '</tbody>';
+    // carry inputs: only rebuild when not being typed into
+    if (!$('carries').contains(document.activeElement)) {
+      $('carries').innerHTML = WEDGES.map(w => `<label>${w}<input type="number" inputmode="numeric" min="10" max="200" data-cw="${w}" value="${fmt(S.carries[w])}"></label>`).join('');
+    }
+    $('feel').value = S.feel;
+    $('feelOut').textContent = S.feel === 0 ? '±0%' : `${S.feel > 0 ? '+' : ''}${S.feel}%`;
+    $('findUnit').textContent = S.units === 'm' ? 'metres carry' : 'yards carry';
+    $('findOut').innerHTML = !best.length ? (S.find > 0 ? '' : 'Type a distance to find the closest wedge and swing length.') :
+      best.map(b => {
+        const d = Math.round(toU(b.d));
+        return `<b>${b.w} ${b.l.name}</b> carries ${fmt(b.c)} ${uName()}${d === 0 ? '' : `, ${Math.abs(d)} ${uName()} ${d > 0 ? 'long' : 'short'}`}`;
+      }).join('<br>or ');
   }
 
   total.addEventListener('input', () => { S.total = +total.value; render(); });
@@ -407,6 +537,28 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
   document.querySelectorAll('[data-club]').forEach(b => b.addEventListener('click', () => { S.club = b.dataset.club; setPressed(); render(); }));
   document.querySelectorAll('[data-len]').forEach(b => b.addEventListener('click', () => { S.len = +b.dataset.len; setPressed(); render(); }));
   document.querySelectorAll('[data-sp]').forEach(b => b.addEventListener('click', () => { S.sp = +b.dataset.sp; setPressed(); save(); }));
+
+  $('guides').addEventListener('change', e => { S.guides = e.target.checked; save(); });
+  $('lad').addEventListener('click', e => {
+    const b = e.target.closest('.cell'); if (!b) return;
+    S.club = 'wedge'; S.wedge = b.dataset.w; S.len = +b.dataset.l;
+    setPressed(); render();
+    document.querySelector('.stage').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  $('carries').addEventListener('input', e => {
+    const w = e.target.dataset.cw, v = +e.target.value; if (!w || !(v >= 10 && v <= 250)) return;
+    S.carries[w] = fromU(v); render();
+  });
+  $('carries').addEventListener('change', () => { document.activeElement.blur(); render(); });
+  $('find').addEventListener('input', e => { S.find = +e.target.value || null; render(); });
+  $('feel').addEventListener('input', e => { S.feel = +e.target.value; render(); });
+  const setUnits = u => {
+    if (S.units === u) return;
+    if (S.find > 0) S.find = Math.round(u === 'm' ? S.find * YD : S.find / YD);
+    S.units = u; $('find').value = S.find || ''; setPressed(); render();
+  };
+  $('uM').addEventListener('click', () => setUnits('m'));
+  $('uY').addEventListener('click', () => setUnits('yd'));
 
   $('pos').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
@@ -604,6 +756,16 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
     cx.strokeStyle = colors.line; cx.lineWidth = 1;
     cx.beginPath(); cx.moveTo(0, Y(0)); cx.lineTo(W, Y(0)); cx.stroke();
 
+    // guide lines: the spine extended down to the ground, and a vertical line through the ball
+    if (S.guides) {
+      cx.save(); cx.globalAlpha = alpha; cx.setLineDash([2, 5]); cx.lineWidth = 1.5;
+      const top = { x: g.chest.x + (g.chest.x - g.pelvis.x) * 0.75, y: g.chest.y + (g.chest.y - g.pelvis.y) * 0.75 };
+      const dx = g.pelvis.x - g.chest.x, dy = g.pelvis.y - g.chest.y, k = -g.chest.y / dy;
+      cx.strokeStyle = colors.ink; line(top, { x: g.chest.x + dx * k, y: 0 });
+      cx.strokeStyle = colors.green; line({ x: m.ballX, y: 0 }, { x: m.ballX, y: yMax });
+      cx.restore();
+    }
+
     // weight bar under the feet
     const st = m.club.stance, barY = -0.11, barH = Math.max(8, px(0.045));
     const bx0 = X(-st - 0.08), bx1 = X(st + 0.08), split = bx0 + (bx1 - bx0) * (1 - p.pr / 100);
@@ -724,7 +886,13 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
     const name = alpha < 1 && t === 0 ? 'Address' : phaseName(m, t);
     cx.fillText(name, W - 14, 14 + fs);
     cx.font = sans; cx.fillStyle = colors.muted;
-    cx.fillText(`${m.club.name} · ${S.len === 1 ? 'full' : S.len === 0.8 ? '¾' : '½'} swing`, W - 14, 14 + fs * 2.4);
+    const clubLabel = S.club === 'wedge' ? S.wedge : m.club.name;
+    cx.fillText(`${clubLabel} · ${S.len === 1 ? 'full swing' : lenName(S.len)}`, W - 14, 14 + fs * 2.4);
+    if (S.club === 'wedge') {
+      cx.font = mono(600); cx.fillStyle = colors.green;
+      cx.fillText(`carry ${Math.round(toU(carry(S.wedge, S.len)))} ${uName()}`, W - 14, 14 + fs * 3.8);
+      cx.font = sans; cx.fillStyle = colors.muted;
+    }
     cx.fillText('target →', W - 14, Y(0.2));
     if (Math.abs(hinge) > 3) {
       cx.textAlign = 'left'; cx.font = mono(600); cx.fillStyle = colors.beat;
@@ -762,6 +930,10 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
 
   // init
   if (!CLUBS[S.club]) S.club = 'iron';
+  if (!LENS.some(l => l.v === S.len)) S.len = 1;
+  if (!WEDGES.includes(S.wedge)) S.wedge = 'SW';
+  for (const w of WEDGES) if (!(S.carries?.[w] > 0)) S.carries = { PW: 105, GW: 92, SW: 80, LW: 65 };
+  $('find').value = S.find || '';
   setPressed(); render();
   requestAnimationFrame(loop);
 })();
