@@ -91,6 +91,12 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   .readout .v { font-size: 19px; }
 }
 
+.seq { border-top: 1px solid var(--line); padding: 12px 14px; display: grid; gap: 8px; }
+.seq-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 14px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 3px; border-radius: 2px; display: block; }
+.seq-box { position: relative; width: 100%; height: 150px; }
 .scrub { border-top: 1px solid var(--line); padding: 12px 14px 14px; display: grid; gap: 10px; }
 .scrub-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .scrub-head output { font-family: var(--mono); font-size: 13px; color: var(--muted); }
@@ -189,6 +195,14 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
         <div class="hip"><span class="label">Hip turn</span><span class="v" id="rHip">0<small>°</small></span></div>
         <div><span class="label">Shoulder turn</span><span class="v" id="rSh">0<small>°</small></span></div>
         <div><span class="label">Weight lead</span><span class="v" id="rLead">50<small>%</small></span></div>
+      </div>
+      <div class="seq">
+        <div class="seq-head">
+          <span class="label">Kinematic sequence</span>
+          <span class="legend" id="seqLegend"></span>
+        </div>
+        <div class="seq-box"><canvas id="sq" role="img" aria-label="Rotation speed of pelvis, chest, lead arm and club through the downswing, peaking in that order"></canvas></div>
+        <p class="hint" id="seqHint">Rotation speed through the downswing. Each part peaks after the one below it and goes faster: the ground-up order the tempo is there to protect.</p>
       </div>
       <div class="scrub">
         <div class="scrub-head"><label class="label" for="scrub">Swing position</label><output id="posOut">Address</output></div>
@@ -310,7 +324,8 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
   // ---------- swing model ----------
   // Ten checkpoints plus one "late backswing" key where the pelvis has already reached its full turn.
   // Each parameter is keyed at every checkpoint and joined with a monotone cubic, so nothing overshoots
-  // and every peak sits on a key. Angles are face-on, in degrees.
+  // and every peak sits on a key. The downswing values are tuned so the rotation speeds peak in the
+  // kinematic sequence: pelvis, then chest, then lead arm, then club, each faster than the one before. Angles are face-on, in degrees.
   //  a    lead arm, from pointing straight down; + swings toward the trail side
   //  h    wrist hinge: shaft angle relative to the lead arm (+ = cocked back)
   //  k    lead arm projected length (below 0.85 the elbow folds)
@@ -335,12 +350,12 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
     { id: 'fin',  name: 'Finish' },
   ];
   const TABLE = {
-    a:    [10, 50, 90, 120, 132, 92, 42, 0, -55, -105, -150],
-    h:    [-6, 40, 90, 104, 110, 108, 50, 8, -35, -75, -80],
+    a:    [10, 50, 90, 120, 132, 110, 54, -2, -20, -70, -150],
+    h:    [-6, 40, 90, 104, 110, 98, 36, 4, -64, -110, -80],
     k:    [1, 0.98, 0.95, 0.92, 0.9, 0.94, 0.98, 1, 1, 0.9, 0.7],
     cl:   [1, 1.1, 1.0, 0.86, 0.82, 0.9, 1.1, 1, 1.12, 1.0, 0.85],
-    sr:   [0, 25, 62, 84, 90, 72, 45, 12, -35, -70, -100],
-    hr:   [0, 8, 28, 44, 42, 18, -12, -40, -55, -72, -88],
+    sr:   [0, 25, 62, 84, 90, 86, 20, 0, -22, -55, -100],
+    hr:   [0, 8, 28, 44, 40, -9, -32, -36, -44, -56, -88],
     px:   [0, -0.01, -0.02, -0.015, 0, 0.04, 0.06, 0.07, 0.08, 0.09, 0.1],
     tilt: [-6, -6, -4, -3, -3, -9, -14, -18, -16, -10, 0],
     pr:   [50, 42, 30, 35, 45, 65, 75, 82, 88, 92, 95],
@@ -380,8 +395,16 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
   const fromU = v => S.units === 'm' ? v : v * YD;
   const uName = () => S.units === 'm' ? 'm' : 'yd';
 
+  const SEQ = [
+    { id: 'pelvis', name: 'Pelvis', col: 'green', fn: (f, t) => f.hr(t) },
+    { id: 'chest',  name: 'Chest',  col: 'muted', fn: (f, t) => f.sr(t) },
+    { id: 'arm',    name: 'Lead arm', col: 'beat', fn: (f, t) => f.a(t) },
+    { id: 'club',   name: 'Club',   col: 'ink',   fn: (f, t) => f.a(t) + f.h(t) },
+  ];
+
   function keyTimes(Tb, Td) {
-    return [0, 0.28 * Tb, 0.58 * Tb, 0.86 * Tb, Tb, Tb + 0.42 * Td, Tb + 0.7 * Td, Tb + Td, Tb + 1.22 * Td, Tb + 1.6 * Td, Tb + 2.6 * Td];
+    // Downswing keys follow tour timing: delivery (shaft parallel) comes late, about 86% of the way down.
+    return [0, 0.28 * Tb, 0.58 * Tb, 0.86 * Tb, Tb, Tb + 0.6 * Td, Tb + 0.86 * Td, Tb + Td, Tb + 1.15 * Td, Tb + 1.45 * Td, Tb + 2.6 * Td];
   }
 
   // Monotone cubic Hermite (Fritsch–Butland tangents), zero speed at both ends.
@@ -422,6 +445,29 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
     m.ballX = body(m, params(m, m.tImp)).head.x;
     m.path = [];
     for (let i = 0; i <= 160; i++) m.path.push(body(m, params(m, m.tFin * i / 160)).head);
+    // Kinematic sequence: rotation speed (deg/s, + toward the target) of each segment around the downswing.
+    m.seq = { t0: m.tTop - 0.7 * Td, t1: m.tImp + 0.7 * Td, ch: SEQ.map(c => ({ ...c, v: [] })) };
+    const N = 180, dt = 0.0008;
+    for (let i = 0; i <= N; i++) {
+      const t = m.seq.t0 + (m.seq.t1 - m.seq.t0) * i / N;
+      for (const c of m.seq.ch) c.v.push(-(c.fn(f, t + dt) - c.fn(f, t - dt)) / (2 * dt));
+    }
+    // The splines join positions smoothly but their speeds are wavy; a Gaussian blur (sigma ~4% of the
+    // downswing) gives the bell-shaped curves a measured sequence shows, without moving the peak order.
+    const step = (m.seq.t1 - m.seq.t0) / N, sd = 0.04 * Td / step, R = Math.ceil(sd * 3);
+    for (const c of m.seq.ch) {
+      const raw = c.v;
+      c.v = raw.map((_, i) => {
+        let sw = 0, sv = 0;
+        for (let j = -R; j <= R; j++) { const k = Math.min(N, Math.max(0, i + j)), w = Math.exp(-j * j / (2 * sd * sd)); sw += w; sv += w * raw[k]; }
+        return sv / sw;
+      });
+    }
+    m.seq.max = 0;
+    for (const c of m.seq.ch) {
+      let k = 0; c.v.forEach((v, i) => { if (v > c.v[k]) k = i; });
+      c.peakI = k; c.peak = c.v[k]; m.seq.max = Math.max(m.seq.max, c.peak);
+    }
     modelCache = m;
     return m;
   }
@@ -495,6 +541,8 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
     $('pos').innerHTML = KEYS.map((k, i) => k.hidden ? '' :
       `<button data-k="${i}" aria-pressed="${frozenKey === i}"><span>P${KEYS.slice(0, i + 1).filter(x => !x.hidden).length}</span>${k.name}</button>`).join('');
     renderLadder();
+    const sq = m.seq.ch;
+    $('seqLegend').innerHTML = sq.map((c, i) => `<span><i style="background:var(--${c.col})"></i>${i + 1} ${c.name}</span>`).join('');
     save();
   }
 
@@ -702,11 +750,68 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
   matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', readColors);
   new MutationObserver(readColors).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
 
+  const sq = $('sq'), sx = sq.getContext('2d');
+  let SW = 0, SH = 0;
   function resize() {
-    const r = cv.getBoundingClientRect(); dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const r = cv.getBoundingClientRect();
     W = r.width; H = r.height; cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const q = sq.getBoundingClientRect();
+    SW = q.width; SH = q.height; sq.width = Math.round(SW * dpr); sq.height = Math.round(SH * dpr);
   }
-  new ResizeObserver(resize).observe(cv); resize();
+  const ro = new ResizeObserver(resize); ro.observe(cv); ro.observe(sq); resize();
+
+  function drawSeq(m, t) {
+    sx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    sx.clearRect(0, 0, SW, SH);
+    if (!SW) return;
+    const { t0, t1, ch, max } = m.seq, N = ch[0].v.length - 1;
+    const padL = 6, padR = 6, padT = 16, padB = 18, vMin = -0.12 * max;
+    const fs = 11;
+    const X = tt => padL + (tt - t0) / (t1 - t0) * (SW - padL - padR);
+    const Y = v => padT + (1 - (v - vMin) / (max * 1.08 - vMin)) * (SH - padT - padB);
+    // zero line, top and impact markers
+    sx.strokeStyle = colors.line; sx.lineWidth = 1;
+    sx.beginPath(); sx.moveTo(padL, Y(0)); sx.lineTo(SW - padR, Y(0)); sx.stroke();
+    sx.font = `${fs}px "IBM Plex Sans", system-ui, sans-serif`; sx.fillStyle = colors.muted; sx.textAlign = 'center';
+    for (const [tt, lab] of [[m.tTop, 'top'], [m.tImp, 'impact']]) {
+      sx.setLineDash([2, 3]); sx.beginPath(); sx.moveTo(X(tt), padT - 4); sx.lineTo(X(tt), SH - padB); sx.stroke(); sx.setLineDash([]);
+      sx.fillText(lab, X(tt), SH - 5);
+    }
+    sx.textAlign = 'left'; sx.fillText(`deg/s · club peaks at ${Math.round(ch[3].peak)}`, padL, 11);
+    // curves
+    sx.lineJoin = 'round'; sx.lineCap = 'round';
+    ch.forEach(c => {
+      sx.strokeStyle = colors[c.col]; sx.lineWidth = c.id === 'club' ? 2.25 : 2;
+      sx.beginPath();
+      c.v.forEach((v, i) => { const xx = X(t0 + (t1 - t0) * i / N), yy = Y(v); i ? sx.lineTo(xx, yy) : sx.moveTo(xx, yy); });
+      sx.stroke();
+    });
+    // numbered peaks
+    sx.font = `600 ${fs}px "IBM Plex Mono", ui-monospace, monospace`; sx.textAlign = 'center';
+    ch.forEach((c, i) => {
+      const xx = X(t0 + (t1 - t0) * c.peakI / N), yy = Y(c.peak);
+      sx.fillStyle = colors[c.col]; sx.beginPath(); sx.arc(xx, yy, 3.5, 0, Math.PI * 2); sx.fill();
+      sx.fillText(`${i + 1}`, xx, yy - 7);
+    });
+
+    // playhead
+    if (t >= t0 && t <= t1) {
+      const xx = X(t);
+      sx.strokeStyle = colors.ink; sx.lineWidth = 1;
+      sx.beginPath(); sx.moveTo(xx, padT - 4); sx.lineTo(xx, SH - padB); sx.stroke();
+      const fi = (t - t0) / (t1 - t0) * N, i0 = Math.min(N - 1, Math.floor(fi)), u = fi - i0;
+      ch.forEach(c => {
+        const v = c.v[i0] * (1 - u) + c.v[i0 + 1] * u;
+        sx.fillStyle = colors.surface; sx.strokeStyle = colors[c.col]; sx.lineWidth = 2;
+        sx.beginPath(); sx.arc(xx, Y(v), 4, 0, Math.PI * 2); sx.fill(); sx.stroke();
+      });
+    } else {
+      sx.fillStyle = colors.muted; sx.font = `${fs}px "IBM Plex Sans", system-ui, sans-serif`;
+      sx.textAlign = t < t0 ? 'left' : 'right';
+      sx.fillText(t < t0 ? '← backswing' : 'follow-through →', t < t0 ? padL : SW - padR, padT + 8);
+    }
+  }
 
   function phaseName(m, t) {
     for (let i = 0; i < KEYS.length; i++) if (!KEYS[i].hidden && Math.abs(m.xs[i] - t) < m.tFin * 0.006) return KEYS[i].name;
@@ -873,14 +978,29 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
       cx.beginPath(); cx.moveTo(dcx - Math.cos(th) * rr, dcy + Math.sin(th) * rr); cx.lineTo(dcx + Math.cos(th) * rr, dcy - Math.sin(th) * rr); cx.stroke();
       cx.fillStyle = col; cx.beginPath(); cx.arc(dcx + Math.cos(th) * rr, dcy - Math.sin(th) * rr, w * 0.9, 0, Math.PI * 2); cx.fill();
     };
+    // ball in front of the golfer (bottom of the dial)
+    cx.fillStyle = colors.ball; cx.strokeStyle = colors.muted; cx.lineWidth = 1;
+    cx.beginPath(); cx.arc(dcx, dcy + R * 0.86, Math.max(3, R * 0.07), 0, Math.PI * 2); cx.fill(); cx.stroke();
     turnLine(-p.sr, R * 0.92, colors.muted, 3);
     turnLine(-p.hr, R * 0.62, colors.green, 4);
+    // lead arm from above: from the lead shoulder to the hands. The hands travel round the body with the
+    // face-on arm angle: in front of the ball at address, behind the trail shoulder at the top,
+    // round to the lead side in the finish.
+    {
+      const sth = -p.sr * D2R, shx = dcx + Math.cos(sth) * R * 0.92, shy = dcy - Math.sin(sth) * R * 0.92;
+      const psi = p.a * 0.9 * D2R, rh = R * 0.62;
+      const hx = dcx - Math.sin(psi) * rh, hy = dcy + Math.cos(psi) * rh;
+      cx.strokeStyle = colors.beat; cx.lineWidth = 3;
+      cx.beginPath(); cx.moveTo(shx, shy); cx.lineTo(hx, hy); cx.stroke();
+      cx.fillStyle = colors.beat; cx.beginPath(); cx.arc(hx, hy, 3.5, 0, Math.PI * 2); cx.fill();
+    }
     // labels sit under the dial, clear of the hands and club at the top of the swing
     cx.font = mono(500); cx.textAlign = 'left';
     const ty = dcy + R + fs * 1.5, lh = fs * 1.3;
     cx.fillStyle = colors.muted; cx.fillText(`shoulders ${Math.round(Math.abs(p.sr))}°${p.sr < -2 ? ' open' : ''}`, 14, ty);
     cx.fillStyle = colors.green; cx.fillText(`hips ${Math.round(Math.abs(p.hr))}°${p.hr < -2 ? ' open' : ''}`, 14, ty + lh);
     cx.fillStyle = colors.ink; cx.fillText(`gap ${Math.round(Math.abs(p.sr - p.hr))}°`, 14, ty + 2 * lh);
+    cx.fillStyle = colors.beat; cx.fillText('lead arm', 14, ty + 3 * lh);
 
     // labels
     cx.textAlign = 'right'; cx.font = `600 ${fs * 1.05}px "IBM Plex Sans", system-ui, sans-serif`; cx.fillStyle = colors.ink;
@@ -917,6 +1037,8 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
     }
     $('posOut').textContent = name;
     if (running) scrub.value = Math.round(t / m.tFin * 1000);
+
+    drawSeq(m, alpha < 1 && t === 0 ? 0 : t);
 
     // beat chips
     const at = running && ac ? ac.currentTime : -1;
