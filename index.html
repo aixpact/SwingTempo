@@ -759,7 +759,8 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
     // guide lines: the spine extended down to the ground, and a vertical line through the ball
     if (S.guides) {
       cx.save(); cx.globalAlpha = alpha; cx.setLineDash([2, 5]); cx.lineWidth = 1.5;
-      const top = { x: g.chest.x + (g.chest.x - g.pelvis.x) * 0.75, y: g.chest.y + (g.chest.y - g.pelvis.y) * 0.75 };
+      const ku = (yMax - g.chest.y) / (g.chest.y - g.pelvis.y);   // run the spine axis up to the top edge
+      const top = { x: g.chest.x + (g.chest.x - g.pelvis.x) * ku, y: yMax };
       const dx = g.pelvis.x - g.chest.x, dy = g.pelvis.y - g.chest.y, k = -g.chest.y / dy;
       cx.strokeStyle = colors.ink; line(top, { x: g.chest.x + dx * k, y: 0 });
       cx.strokeStyle = colors.green; line({ x: m.ballX, y: 0 }, { x: m.ballX, y: yMax });
