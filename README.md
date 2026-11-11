@@ -22,3 +22,5 @@ The positions model a typical good swing. They are not a measurement of yours. P
 It is a single `index.html` with no build step. Open it in a browser, or turn on GitHub Pages (Settings → Pages → Deploy from branch `main`, folder `/`) to use it on your phone.
 
 On iPhone the beats play even with the silent switch on; the volume buttons still need to be up.
+
+After an update, GitHub Pages can serve the old page for up to 10 minutes. Reload without the cache (Ctrl/Cmd+Shift+R), or on a phone close and reopen the tab or home-screen app.
