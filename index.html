@@ -74,7 +74,14 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 .chip.on i { background: currentColor; }
 .chip b { font-weight: 500; color: var(--ink); }
 .beats .spacer { flex: 1; }
-.timing { font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.split { display: grid; gap: 5px; }
+.split-text { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.split-text span:first-child { color: var(--beat); }
+.split-text span:last-child { color: var(--green); }
+.split-bar { display: flex; gap: 3px; height: 6px; }
+.split-bar span { border-radius: 3px; }
+#barBack { background: var(--beat); }
+#barDown { background: var(--green); }
 .sound-note { margin: -8px 0 0; font-size: 12.5px; color: var(--beat); }
 
 .readout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line); }
@@ -187,8 +194,6 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
         <span class="chip" id="chipTic"><i></i><b>1</b> takeaway</span>
         <span class="chip" id="chipTop"><i></i><b>2</b> top</span>
         <span class="chip toc" id="chipToc"><i></i><b>3</b> impact</span>
-        <span class="spacer"></span>
-        <span class="timing" id="timing">back 0.80 s · down 0.27 s</span>
       </div>
       <div class="readout">
         <div class="big"><span class="label">Wrist hinge</span><span class="v" id="rHinge">0<small>°</small></span></div>
@@ -221,7 +226,11 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
 
       <div class="tempo-card">
         <div class="field-head"><label class="label" for="total">Takeaway to impact</label><output id="totalOut">1.07 s</output></div>
-        <input type="range" id="total" min="0.7" max="1.4" step="0.01" value="1.07">
+        <div class="split" aria-live="polite">
+          <div class="split-text"><span id="tBack">back 0.80 s</span><span id="tDown">down 0.27 s</span></div>
+          <div class="split-bar"><span id="barBack"></span><span id="barDown"></span></div>
+        </div>
+        <input type="range" id="total" min="0.7" max="1.4" step="0.01" value="1.07" aria-label="Takeaway to impact time">
         <div class="presets" id="presets" role="group" aria-label="Tempo presets"></div>
         <p class="hint" id="totalHint">Keep this the same for every club. Most good swings take about 0.8 to 1.2 seconds.</p>
       </div>
@@ -552,7 +561,9 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
     const m = model();
     total.value = S.total;
     $('totalOut').textContent = `${S.total.toFixed(2)} s`;
-    $('timing').textContent = `back ${m.Tb.toFixed(2)} s · down ${m.Td.toFixed(2)} s`;
+    $('tBack').textContent = `back ${m.Tb.toFixed(2)} s`;
+    $('tDown').textContent = `down ${m.Td.toFixed(2)} s`;
+    $('barBack').style.flex = S.ratio; $('barDown').style.flex = 1;
     $('presets').innerHTML = PRESETS[S.ratio].map(v =>
       `<button data-t="${v}" aria-pressed="${Math.abs(v - S.total) < 0.005}">${v.toFixed(2)} s</button>`).join('');
     $('pos').innerHTML = KEYS.map((k, i) => k.hidden ? '' :
@@ -1037,6 +1048,20 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
       cx.textAlign = 'left'; cx.font = mono(600); cx.fillStyle = colors.beat;
       const lab = add(g.hands, dir(p.a + hinge / 2), 0.19);
       cx.fillText(`${Math.round(Math.abs(hinge))}°`, X(lab.x) - fs, Y(lab.y) + fs * 0.35);
+    }
+    // elapsed swing time since the takeaway (real swing seconds, also in slow motion)
+    {
+      const showT = alpha < 1 && t === 0 ? 0 : t;
+      const ex = 14, ey = Y(0) - 8;   // just above the ground line, left side (mirrors 'target →')
+      cx.textAlign = 'left';
+      cx.font = `600 ${fs * 0.85}px "IBM Plex Sans", system-ui, sans-serif`; cx.fillStyle = colors.muted;
+      cx.fillText('FROM TAKEAWAY', ex, ey - fs * 3.7);
+      cx.font = `500 ${Math.round(fs * 1.9)}px "IBM Plex Mono", ui-monospace, monospace`;
+      cx.fillStyle = showT >= m.tImp - 0.004 ? colors.green : showT >= m.tTop ? colors.beat : colors.ink;
+      cx.fillText(`${showT.toFixed(2)} s`, ex, ey - fs * 1.4);
+      cx.font = mono(); cx.fillStyle = colors.muted;
+      const mark = showT < m.tTop ? `top at ${m.tTop.toFixed(2)}` : showT < m.tImp - 0.004 ? `impact at ${m.tImp.toFixed(2)}` : `impact ${m.tImp.toFixed(2)}`;
+      cx.fillText(mark, ex, ey);
     }
     if (!running && t === 0) {
       cx.textAlign = 'center'; cx.fillStyle = colors.muted; cx.font = sans;
