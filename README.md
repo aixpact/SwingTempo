@@ -19,7 +19,7 @@ A full golf swing tempo trainer, and the companion to TicTocPutter. Every club g
 
 The positions model a typical good swing. They are not a measurement of yours. Partial carries assume clubhead speed scales with how far the club travels from the top to impact in the same downswing time.
 
-It is a single `index.html` with no build step. Open it in a browser, or turn on GitHub Pages (Settings → Pages → Deploy from branch `main`, folder `/`) to use it on your phone.
+It is a single `index.html` with no build step. Open it in a browser, or use GitHub Pages to run it on your phone: set Settings → Pages → Source to **GitHub Actions**, and `.github/workflows/pages.yml` publishes `main` on every push.
 
 On iPhone the beats play even with the silent switch on; the volume buttons still need to be up.
 
