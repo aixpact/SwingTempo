@@ -91,12 +91,12 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   .readout .v { font-size: 19px; }
 }
 
-.seq { border-top: 1px solid var(--line); padding: 12px 14px; display: grid; gap: 8px; }
+.seq { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 8px; }
 .seq-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 14px; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i { width: 14px; height: 3px; border-radius: 2px; display: block; }
-.seq-box { position: relative; width: 100%; height: 150px; }
+.seq-box { position: relative; width: 100%; height: 160px; }
 .scrub { border-top: 1px solid var(--line); padding: 12px 14px 14px; display: grid; gap: 10px; }
 .scrub-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .scrub-head output { font-family: var(--mono); font-size: 13px; color: var(--muted); }
@@ -196,14 +196,6 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
         <div><span class="label">Shoulder turn</span><span class="v" id="rSh">0<small>°</small></span></div>
         <div><span class="label">Weight lead</span><span class="v" id="rLead">50<small>%</small></span></div>
       </div>
-      <div class="seq">
-        <div class="seq-head">
-          <span class="label">Kinematic sequence</span>
-          <span class="legend" id="seqLegend"></span>
-        </div>
-        <div class="seq-box"><canvas id="sq" role="img" aria-label="Rotation speed of pelvis, chest, lead arm and club through the downswing, peaking in that order"></canvas></div>
-        <p class="hint" id="seqHint">Rotation speed through the downswing. Each part peaks after the one below it and goes faster: the ground-up order the tempo is there to protect.</p>
-      </div>
       <div class="scrub">
         <div class="scrub-head"><label class="label" for="scrub">Swing position</label><output id="posOut">Address</output></div>
         <input type="range" id="scrub" min="0" max="1000" step="1" value="0" aria-describedby="posOut">
@@ -217,6 +209,15 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
         <button class="btn-sq" id="snd" aria-pressed="true" title="Sound on or off">Sound</button>
       </div>
       <p class="sound-note" id="soundNote" hidden></p>
+
+      <div class="seq">
+        <div class="seq-head">
+          <span class="label">Kinematic sequence</span>
+          <span class="legend" id="seqLegend"></span>
+        </div>
+        <div class="seq-box"><canvas id="sq" role="img" aria-label="Rotation speed of pelvis, chest, lead arm and club through the downswing, peaking in that order"></canvas></div>
+        <p class="hint" id="seqHint">Rotation speed through the downswing. Each part peaks after the one below it and goes faster: the ground-up order the tempo is there to protect.</p>
+      </div>
 
       <div class="tempo-card">
         <div class="field-head"><label class="label" for="total">Takeaway to impact</label><output id="totalOut">1.07 s</output></div>
@@ -366,9 +367,11 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
   // How each parameter scales with a shorter swing (exponent on the length factor).
   const LEN_EXP = { a: 1, h: 0.5, k: 1, cl: 1, sr: 1, hr: 1, px: 1, tilt: 1, pr: 1, kl: 1, kt: 1, heel: 1 };
   const CLUBS = {
-    driver: { name: 'Driver', len: 0.88, stance: 0.25, tilt: -6 },
-    iron:   { name: '7-iron', len: 0.76, stance: 0.2,  tilt: 0 },
-    wedge:  { name: 'Wedge',  len: 0.72, stance: 0.17, tilt: 2 },
+    // aoa: typical angle of attack (deg, + = upward). Irons and wedges meet the ball before the low
+    // point of the swing, the driver after it, off a tee.
+    driver: { name: 'Driver', len: 0.88, stance: 0.25, tilt: -6, aoa: 3 },
+    iron:   { name: '7-iron', len: 0.76, stance: 0.2,  tilt: 0,  aoa: -4 },
+    wedge:  { name: 'Wedge',  len: 0.72, stance: 0.17, tilt: 2,  aoa: -5 },
   };
   const SPINE = 0.42, SH_HALF = 0.18, ARM = 0.5, TRAIL_SEG = 0.27, HIP_HALF = 0.1;
 
@@ -439,12 +442,26 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
       f[p] = spline(xs, ys);
     }
     const m = { sig, Tb, Td, xs, f, club, tTop: xs[4], tImp: xs[7], tFin: xs[10], hipY: 0.84, ballX: 0 };
-    // Fit the leg height so the clubhead meets the ground at impact, and put the ball there.
-    const g = body(m, params(m, m.tImp));
+    // Contact: the moment near the impact key where the clubhead travels at the club's angle of attack
+    // (a few milliseconds from the beat). Fit the leg height so the clubhead meets the ball there.
+    const pathAngle = t => { const a = body(m, params(m, t - 0.001)).head, b = body(m, params(m, t + 0.001)).head; return Math.atan2(b.y - a.y, b.x - a.x) / D2R; };
+    m.tContact = m.tImp;
+    for (let t = m.tImp - 0.25 * Td, best = Infinity; t <= m.tImp + 0.25 * Td; t += 0.0004) {
+      const e = Math.abs(pathAngle(t) - club.aoa); if (e < best) { best = e; m.tContact = t; }
+    }
+    const g = body(m, params(m, m.tContact));
     m.hipY += 0.022 - g.head.y;
-    m.ballX = body(m, params(m, m.tImp)).head.x;
+    m.ballX = body(m, params(m, m.tContact)).head.x + BALL_R + 0.004;   // ball sits against the face
     m.path = [];
     for (let i = 0; i <= 160; i++) m.path.push(body(m, params(m, m.tFin * i / 160)).head);
+    // Angle of attack: direction the clubhead is travelling at impact (face-on, + = upward).
+    {
+      const e = 0.001, h0 = body(m, params(m, m.tContact - e)).head, h1 = body(m, params(m, m.tContact + e)).head;
+      m.aoa = Math.atan2(h1.y - h0.y, h1.x - h0.x) / D2R;
+      m.impHead = body(m, params(m, m.tContact)).head;
+      m.zoomPath = [];
+      for (let i = 0; i <= 48; i++) m.zoomPath.push(body(m, params(m, m.tContact + (i / 48 - 0.5) * 0.7 * Td)).head);
+    }
     // Kinematic sequence: rotation speed (deg/s, + toward the target) of each segment around the downswing.
     m.seq = { t0: m.tTop - 0.7 * Td, t1: m.tImp + 0.7 * Td, ch: SEQ.map(c => ({ ...c, v: [] })) };
     const N = 180, dt = 0.0008;
@@ -613,7 +630,8 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
     if (running) stop();
     frozenKey = +b.dataset.k;
     const m = model();
-    scrub.value = Math.round(m.xs[frozenKey] / m.tFin * 1000);
+    const tt = KEYS[frozenKey].id === 'imp' ? m.tContact : m.xs[frozenKey];   // impact = the moment of contact
+    scrub.value = Math.round(tt / m.tFin * 1000);
     render();
   });
   scrub.addEventListener('input', () => {
@@ -826,7 +844,7 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
       for (const k of cycles) if (k.start <= at) c = k;
       if (!c) { const m = model(); return { m, t: 0, alpha: 1, fly: -1 }; }
       const m = c.m, tw = at - c.start, finW = m.tFin / c.sp;
-      const fly = tw * c.sp > m.tImp ? (tw - m.tImp / c.sp) * c.sp : -1;
+      const fly = tw * c.sp > m.tContact ? (tw - m.tContact / c.sp) * c.sp : -1;
       if (tw < finW + HOLD) return { m, t: Math.min(tw * c.sp, m.tFin), alpha: 1, fly };
       const u = (tw - finW - HOLD) / FADE;
       if (u < 0.5) return { m, t: m.tFin, alpha: 1 - 2 * u, fly };
@@ -947,7 +965,7 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
     // clubhead: a short block across the end of the shaft
     const across = { x: -sd.y, y: sd.x }, hl = S.club === 'driver' ? 0.07 : 0.05;
     cx.lineWidth = Math.max(5, px(S.club === 'driver' ? 0.05 : 0.032)); cx.lineCap = 'butt';
-    line(add(g.head, across, -hl * 0.3), add(g.head, across, hl));
+    line(add(g.head, across, -hl), add(g.head, across, 0.004));          // face at the front, toward the target
     cx.lineCap = 'round';
     cx.fillStyle = colors.beat; cx.beginPath(); cx.arc(X(g.hands.x), Y(g.hands.y), Math.max(3, px(0.022)), 0, Math.PI * 2); cx.fill();
     cx.globalAlpha = 1;
@@ -956,7 +974,7 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
     const br = Math.max(4, px(BALL_R));
     let ball = { x: m.ballX, y: BALL_R }, balpha = alpha;
     if (fly >= 0) { ball = { x: m.ballX + 9 * fly, y: BALL_R + 3.2 * fly }; balpha = Math.max(0, 1 - fly / 0.35); }
-    else if (!running && t > m.tImp) balpha = 0;
+    else if (!running && t > m.tContact + 0.002) balpha = 0;
     if (balpha > 0) {
       cx.globalAlpha = balpha; cx.fillStyle = colors.ball; cx.strokeStyle = colors.muted; cx.lineWidth = 1;
       cx.beginPath(); cx.arc(X(ball.x), Y(ball.y), br, 0, Math.PI * 2); cx.fill(); cx.stroke();
@@ -1023,6 +1041,59 @@ input[type="range"] { width: 100%; accent-color: var(--green); margin: 4px 0 0; 
     if (!running && t === 0) {
       cx.textAlign = 'center'; cx.fillStyle = colors.muted; cx.font = sans;
       cx.fillText('Press Start tempo or the space bar', W / 2, Y(-0.25));
+    }
+
+    // ---- angle-of-attack zoom (top-right, under the labels) ----
+    {
+      const zr = R, zcx = W - 14 - zr - 2, zcy = 14 + fs * (S.club === 'wedge' ? 6.8 : 5.4) + zr;
+      const span = 0.15, zs = zr / span, c0 = { x: m.impHead.x + 0.02, y: BALL_R + 0.02 };
+      const ZX = x => zcx + (x - c0.x) * zs, ZY = y => zcy - (y - c0.y) * zs;
+      cx.font = `600 ${fs * 0.85}px "IBM Plex Sans", system-ui, sans-serif`; cx.fillStyle = colors.muted; cx.textAlign = 'right';
+      cx.fillText('ANGLE OF ATTACK', W - 14, zcy - zr - fs * 0.6);
+      cx.save();
+      cx.beginPath(); cx.arc(zcx, zcy, zr, 0, Math.PI * 2);
+      cx.fillStyle = colors.surface; cx.fill(); cx.clip();
+      // ground
+      cx.fillStyle = colors['green-soft']; cx.fillRect(zcx - zr, ZY(0), 2 * zr, zr * 2);
+      cx.strokeStyle = colors.line; cx.lineWidth = 1; cx.beginPath(); cx.moveTo(zcx - zr, ZY(0)); cx.lineTo(zcx + zr, ZY(0)); cx.stroke();
+      // clubhead path through impact
+      cx.strokeStyle = colors.muted; cx.lineWidth = 1.5; cx.setLineDash([3, 4]);
+      cx.beginPath(); m.zoomPath.forEach((q, i) => i ? cx.lineTo(ZX(q.x), ZY(q.y)) : cx.moveTo(ZX(q.x), ZY(q.y))); cx.stroke();
+      cx.setLineDash([]);
+      // ball (follows the main view, including its flight)
+      if (balpha > 0) {
+        cx.globalAlpha = balpha; cx.fillStyle = colors.ball; cx.strokeStyle = colors.ink; cx.lineWidth = 1.5;
+        cx.beginPath(); cx.arc(ZX(ball.x), ZY(ball.y), BALL_R * zs, 0, Math.PI * 2); cx.fill(); cx.stroke();
+        cx.globalAlpha = 1;
+      }
+      // direction of travel at impact against the horizontal
+      const ip = { x: ZX(m.impHead.x), y: ZY(m.impHead.y) }, L = zr * 0.85, th = m.aoa * D2R;
+      cx.strokeStyle = colors.beat; cx.lineWidth = 2;
+      cx.beginPath(); cx.moveTo(ip.x - Math.cos(th) * L * 0.6, ip.y + Math.sin(th) * L * 0.6); cx.lineTo(ip.x + Math.cos(th) * L, ip.y - Math.sin(th) * L); cx.stroke();
+      const ax = ip.x + Math.cos(th) * L, ay = ip.y - Math.sin(th) * L;
+      cx.fillStyle = colors.beat; cx.beginPath();
+      cx.moveTo(ax, ay); cx.lineTo(ax - Math.cos(th - 0.4) * 8, ay + Math.sin(th - 0.4) * 8); cx.lineTo(ax - Math.cos(th + 0.4) * 8, ay + Math.sin(th + 0.4) * 8); cx.fill();
+      cx.strokeStyle = colors.ink; cx.lineWidth = 1; cx.setLineDash([2, 3]);
+      cx.beginPath(); cx.moveTo(ip.x, ip.y); cx.lineTo(ip.x + L, ip.y); cx.stroke(); cx.setLineDash([]);
+      cx.strokeStyle = colors.beat; cx.lineWidth = 1.5;
+      cx.beginPath(); cx.arc(ip.x, ip.y, L * 0.55, 0, -th, th > 0); cx.stroke();
+      // the club, live while it is inside the circle
+      const hd = g.head;
+      if (Math.hypot(ZX(hd.x) - zcx, ZY(hd.y) - zcy) < zr * 1.6 && alpha > 0) {
+        const sd2 = dir(g.c), ac = { x: -sd2.y, y: sd2.x };
+        cx.globalAlpha = alpha;
+        cx.strokeStyle = colors.ink; cx.lineWidth = 2; cx.lineCap = 'round';
+        cx.beginPath(); cx.moveTo(ZX(hd.x), ZY(hd.y)); cx.lineTo(ZX(hd.x - sd2.x * 0.5), ZY(hd.y - sd2.y * 0.5)); cx.stroke();
+        cx.lineWidth = Math.max(5, zs * 0.03); cx.lineCap = 'butt';
+        const hl = S.club === 'driver' ? 0.07 : 0.05;
+        cx.beginPath(); cx.moveTo(ZX(hd.x - ac.x * hl), ZY(hd.y - ac.y * hl)); cx.lineTo(ZX(hd.x + ac.x * 0.004), ZY(hd.y + ac.y * 0.004)); cx.stroke();
+        cx.lineCap = 'round'; cx.globalAlpha = 1;
+      }
+      cx.restore();
+      cx.strokeStyle = colors.line; cx.lineWidth = 1; cx.beginPath(); cx.arc(zcx, zcy, zr, 0, Math.PI * 2); cx.stroke();
+      cx.font = mono(600); cx.fillStyle = colors.beat; cx.textAlign = 'right';
+      const av = Math.abs(m.aoa);
+      cx.fillText(av < 0.25 ? 'level, 0°' : `${av.toFixed(1)}° ${m.aoa < 0 ? 'down' : 'up'}`, W - 14, zcy + zr + fs * 1.5);
     }
 
     // readouts

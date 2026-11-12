@@ -11,7 +11,8 @@ A full golf swing tempo trainer, and the companion to TicTocPutter. Every club g
   - **Leg action:** lead knee moves in, lead leg posts at impact, trail heel lifts.
   - **Clubhead path** with a speed trail.
   - **From-above dial** with hip turn, shoulder turn and the lead arm, plus the ball.
-- **Kinematic sequence strip:** rotation speed of pelvis, chest, lead arm and club through the downswing, with a playhead. They peak in that order, each faster than the last.
+  - **Angle-of-attack zoom:** a close-up circle at the ball showing the clubhead path and its angle at contact: about 4° down with irons, 5° down with wedges, 3° up with the driver.
+- **Kinematic sequence** (next to the Start button): rotation speed of pelvis, chest, lead arm and club through the downswing, with a playhead. They peak in that order, each faster than the last.
 - Driver, 7-iron and wedge setups. Full, 10:30, 9:00 and 7:30 swing lengths at the same tempo.
 - Optional guide lines: the spine extended to the ground and a vertical line through the ball.
 - **Wedge ladder:** enter your full carry with PW, GW, SW and LW, and the grid estimates the carry at 7:30, 9:00 and 10:30. Tap a cell to see that swing. "Find a shot" gives the closest wedge and length for a distance, in metres or yards. A partial-swing feel adjustment tunes the estimates to you.
