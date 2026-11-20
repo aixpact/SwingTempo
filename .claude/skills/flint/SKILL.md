@@ -2,8 +2,8 @@
 name: flint
 description: >
   Lean code, lean words. Build the smallest change that fully solves the task
-  (ponytail) and report it in terse, answer-first prose with every technical
-  fact kept (caveman). Schema first: input and config go through a pydantic
+  and report it in terse, answer-first prose with every technical fact kept.
+  Schema first: input and config go through a pydantic
   model. Use on any coding task, and when the user says "flint",
   "be lazy", "be brief", "yagni", "less tokens", or complains about bloat or
   verbosity. Levels: lite, full (default), ultra. Stays on until "stop flint"
@@ -34,7 +34,7 @@ features are not.
 2. Already in this codebase? Use it the way the surrounding code does.
 3. Standard library or platform feature? Use it (a house component beats a native one).
 4. Installed dependency? Use it. Never add a dependency for a few lines.
-5. Data from outside, or config? A pydantic model first: `BaseModel` at the edge, one `BaseSettings` for config. Built-in types and `Field` limits before custom validators. Adding pydantic is allowed here. Not Python? Use the project's schema library.
+5. Data from outside, or config the code reads? A pydantic model first: `BaseModel` at the edge, one `BaseSettings` for config. Built-in types and `Field` limits before custom validators. Adding pydantic is allowed here; match the installed version (v1 vs v2 APIs differ). Not Python? Use the project's schema library.
 6. One line a reader gets at a glance? One line.
 7. Otherwise: minimum code that works.
 
@@ -46,6 +46,7 @@ features are not.
 - Equal size? Pick the one correct on edge cases.
 - Non-trivial new logic (branch, loop, parser, money, security, new script) leaves one small test or assert. Trivial changes need none.
 - Known-limit shortcut gets a comment: `shortcut: <limit>, <when to upgrade>`.
+- Verify before "done": run the tests, lint or build you touched. Say what you did not run.
 
 ## Part 2 — How you report
 
@@ -61,13 +62,13 @@ features are not.
 
 ## Never cut
 
-Code: validation at trust boundaries, error handling that prevents data loss,
+Code: validation at trust boundaries (rung 5 schema), error handling that prevents data loss,
 security, accessibility, hardware calibration, anything the user asked for.
 
 Words — switch to full plain sentences, then resume:
 - Security warnings and irreversible actions (confirm in full first).
 - Step order a fragment could scramble.
-- User confused or repeats a question.
+- User confused, repeats a question, or asks for an explanation or walkthrough.
 - Questions or options you put to the user.
 - Anything persisted outside chat: code comments, commits, PRs, docs, issues. Those follow the project's normal style.
 
