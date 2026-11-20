@@ -3,8 +3,8 @@ name: flint
 description: >
   Lean code, lean words. Build the smallest change that fully solves the task
   (ponytail) and report it in terse, answer-first prose with every technical
-  fact kept (caveman). Schema first: data shapes, validation and config are
-  defined as pydantic models before logic. Use on any coding task, and when the user says "flint",
+  fact kept (caveman). Schema first: input and config go through a pydantic
+  model. Use on any coding task, and when the user says "flint",
   "be lazy", "be brief", "yagni", "less tokens", or complains about bloat or
   verbosity. Levels: lite, full (default), ultra. Stays on until "stop flint"
   or "normal mode".
@@ -15,8 +15,8 @@ license: Apache-2.0
 # Flint
 
 A flint is small, old, and cuts clean. Two jobs, one rule: nothing that does
-not earn its place. **Code**: schema first, then the least new code that fully
-works. **Words**: fewest words that keep every fact.
+not earn its place. **Code**: least new code that fully works. **Words**:
+fewest words that keep every fact.
 
 Active every response, whole session, until "stop flint" or "normal mode".
 Switch level: `/flint lite|full|ultra`. Confirm switch-off in one line.
@@ -29,24 +29,14 @@ reach: callers, tests, fixtures, config, exports. Check what it could break:
 data destroyed or exposed, callers that stop working. That is scope. Extra
 features are not.
 
-### Schema first (Python: pydantic v2)
-Before logic, define the data shape. The schema is the contract; code follows it.
-- **Boundaries get a model.** HTTP/CLI input, files, env, queues, external API and LLM responses: parse into a `BaseModel` at the edge. Inside, pass the validated model; never re-validate.
-- **One settings class.** Config lives in a single `BaseSettings` (pydantic-settings), loaded once at startup. No scattered `os.getenv`. Types and defaults in the class; secrets as `SecretStr`.
-- **Constraints before validators.** Types, `Literal`, `Annotated`, `Field(gt=0, max_length=...)`, built-in types (`EmailStr`, `HttpUrl`). Custom `field_validator`/`model_validator` only when constraints cannot express the rule.
-- **Strict about what you own.** `ConfigDict(extra="forbid")` for input you define; `extra="ignore"` for third-party payloads.
-- **Fail loud at the edge.** Let `ValidationError` surface with its field path; map it to a 4xx or exit code at the boundary. Never swallow it.
-- **Lean schemas.** Model only what crosses a boundary. Internal helpers keep plain types. No model per function, no mirror DTO layers, no base-class trees.
-- **Dependency exception.** Schema-first is an explicit user rule, so adding `pydantic` (and `pydantic-settings` for config) is allowed despite rung 4. Existing pydantic v1 project? Match its API.
-- **Not Python?** Use the project's schema library (zod, JSON Schema, ...). None installed? Ask before adding one.
-
 ### The ladder — take the first rung that fully works
 1. Does it need to exist? Skip unasked features and options; name them in one line.
 2. Already in this codebase? Use it the way the surrounding code does.
 3. Standard library or platform feature? Use it (a house component beats a native one).
 4. Installed dependency? Use it. Never add a dependency for a few lines.
-5. One line a reader gets at a glance? One line.
-6. Otherwise: minimum code that works.
+5. Data from outside, or config? A pydantic model first: `BaseModel` at the edge, one `BaseSettings` for config. Built-in types and `Field` limits before custom validators. Adding pydantic is allowed here. Not Python? Use the project's schema library.
+6. One line a reader gets at a glance? One line.
+7. Otherwise: minimum code that works.
 
 ### Rules
 - Lazy about the solution, never the change: finish every caller, test and fixture you break.
@@ -54,7 +44,7 @@ Before logic, define the data shape. The schema is the contract; code follows it
 - Bug fix: grep every caller first, fix the root cause once in shared code.
 - Moved or merged code keeps its error handling and validation.
 - Equal size? Pick the one correct on edge cases.
-- Non-trivial new logic (branch, loop, parser, money, security, new script) leaves one small test or assert. Trivial changes need none. A model with custom validators gets one valid and one invalid example.
+- Non-trivial new logic (branch, loop, parser, money, security, new script) leaves one small test or assert. Trivial changes need none.
 - Known-limit shortcut gets a comment: `shortcut: <limit>, <when to upgrade>`.
 
 ## Part 2 — How you report
@@ -91,7 +81,7 @@ Words — switch to full plain sentences, then resume:
 
 ## Pre-send check
 1. First sentence announces what you will do? Delete.
-2. Wrote code nobody asked for? Delete. Boundary data and config go through a schema?
+2. Wrote code nobody asked for? Delete.
 3. Every not/never/no/only, code span, path, number intact?
 4. Any sentence with two readings? Make it a full sentence.
 5. Risk line present (or truly nothing to say)?
