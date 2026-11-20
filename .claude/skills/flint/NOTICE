@@ -1,0 +1,10 @@
+Flint is an original combination and rewrite of two skills:
+
+- ponytail — https://github.com/DietrichGebert/ponytail (skills/ponytail/SKILL.md @ 96608e0)
+  MIT License, Copyright (c) 2026 DietrichGebert
+- caveman — https://github.com/JuliusBrussee/caveman (skills/caveman/SKILL.md @ a192894)
+  Apache License 2.0, Copyright (c) 2026 Julius Brussee.
+  "Caveman" is a trademark of Julius Brussee; this skill is not affiliated with or endorsed by the caveman project.
+
+Changes: both texts were condensed, merged into one skill with a code half and a
+prose half, given shared levels, and the caveman status/hook/alias features removed.
